@@ -1,0 +1,162 @@
+   public class CaptchaOptions
+   {
+       public static FontCollection FontCollection { get; set; } = null!;
+       public string[] FontFamilies { get; set; } = FontCollection.Families.Select(t => t.Name).ToArray();
+       public Color[] TextColor { get; set; } = { Color.White };
+       public Color[] DrawLinesColor { get; set; } = { Color.Blue, Color.Black, Color.Black, Color.Brown, Color.Gray, Color.Green };
+       public float MinLineThickness { get; set; } = 0.7f;
+       public float MaxLineThickness { get; set; } = 2.0f;
+       public ushort Width { get; set; } = 250;
+       public ushort Height { get; set; } = 50;
+       public ushort NoiseRate { get; set; } = 700;
+       public Color[] NoiseRateColor { get; set; } = { Color.Blue, Color.Black, Color.Chocolate, Color.Red, Color.Gray, Color.Green };
+       public byte FontSize { get; set; } = 32;
+       public FontStyle FontStyle { get; set; } = FontStyle.Bold;
+       public byte DrawLines { get; set; } = 5;
+       public byte MaxRotationDegrees { get; set; } = 3;
+       public Color[] BackgroundColor { get; set; } = { Color.FromRgb(70, 70, 70) };
+   }
+
+   public class CaptchaModule : IDisposable
+   {
+       private readonly CaptchaOptions _options;
+
+       private readonly PngEncoder encoder = new PngEncoder() { TransparentColorMode = PngTransparentColorMode.Preserve };
+
+       public CaptchaModule(CaptchaOptions options)
+       {
+           _options = options;
+       }
+
+       public string Generate(string stringText)
+       {
+
+
+
+           using (var imgText = new Image<Rgba32>(_options.Width, _options.Height))
+           {
+               float positionX = 5;
+               int positionY = 5;
+               Random random = Random.Shared;
+               byte startWith = (byte)random.Next(5, 10);
+               imgText.Mutate(ctx => ctx.BackgroundColor(Color.Transparent));
+
+               string fontName = _options.FontFamilies[random.Next(0, _options.FontFamilies.Length)];
+               Font font = CaptchaOptions.FontCollection.Families.First(t => t.Name == fontName).CreateFont(_options.FontSize, _options.FontStyle);
+
+
+
+
+               //add rotation
+               AffineTransformBuilder rotation = getRotation();
+               foreach (char c in stringText)
+               {
+                   //fontName = _options.FontFamilies[random.Next(0, _options.FontFamilies.Length)];
+                   //font = CaptchaOptions.FontCollection.Families.First(t => t.Name == fontName).CreateFont(_options.FontSize, _options.FontStyle);
+                   var location = new PointF(startWith + positionX, random.Next(6, 13) + 10);
+                   var locationX = new PointF(location.X + 2, location.Y + 2);
+                   var textColor = _options.TextColor[random.Next(0, _options.TextColor.Length)];
+                   imgText.Mutate(ctx => ctx.DrawText(c.ToString(), font, Color.Black, locationX).Grayscale(0.9f));
+
+                   locationX = new PointF(location.X - 2, location.Y - 2);
+                   imgText.Mutate(ctx => ctx.DrawText(c.ToString(), font, Color.Black, locationX).Grayscale(0.9f));
+                   imgText.Mutate(ctx => ctx.DrawText(c.ToString(), font, textColor, location).Grayscale(0.9f));
+                   var mez = TextMeasurer.MeasureSize(c.ToString(), new TextOptions(font));
+                   positionX += mez.Width;
+                   positionY += positionY;
+                   rotation = getRotation();
+                   imgText.Mutate(ctx => ctx.Transform(rotation));
+               }
+               ushort size = (ushort)TextMeasurer.MeasureSize(stringText, new TextOptions(font)).Width;
+               var img = new Image<Rgba32>((int)(size * 1.2), (int)(imgText.Height * 1.2));
+               img.Mutate(ctx => ctx.BackgroundColor(_options.BackgroundColor[random.Next(0, _options.BackgroundColor.Length)]));
+
+               Parallel.For(0, _options.NoiseRate, i =>
+               {
+                   int x0 = random.Next(0, img.Width);
+                   int y0 = random.Next(0, img.Height);
+                   img.Mutate(
+                               ctx => ctx
+                                   .DrawLine(_options.NoiseRateColor[random.Next(0, _options.NoiseRateColor.Length)],
+                                   Extensions.GenerateNextFloat(0.5, 1.5), new PointF[] { new Vector2(x0, y0), new Vector2(x0, y0) })
+                           );
+               });
+
+               Parallel.For(0, _options.DrawLines, i =>
+               {
+                   int x0 = random.Next(0, random.Next(0, 30));
+                   int y0 = random.Next(10, img.Height);
+                   int x1 = random.Next(img.Width - random.Next(0, ((int)(img.Width * 0.60))), img.Width);
+                   int y1 = random.Next(0, img.Height);
+                   img.Mutate(ctx =>
+                           ctx.DrawLine(_options.DrawLinesColor[random.Next(0, _options.DrawLinesColor.Length)],
+                                         Extensions.GenerateNextFloat(_options.MinLineThickness, _options.MaxLineThickness),
+                                         new PointF[] { new PointF(x0, y0), new PointF(x1, y1) })
+                           );
+               });
+               //img.Mutate(ctx => ctx.DrawImage(imgText, new Rectangle() { X=0,Y=0,Width=Math.Min(imgText.Width,img.Width),Height= Math.Min(imgText.Height, img.Height) }, 0.92f));
+               img.Mutate(ctx => ctx.DrawImage(imgText, 0.9f));//, new Rectangle() { X=0,Y= 0 , Width= (int)positionX, Height= positionY }, 0.92f));
+
+               imgText.Dispose();
+
+               Parallel.For(0, _options.NoiseRate / 20, i =>
+               {
+                   int x0 = random.Next(0, img.Width);
+                   int y0 = random.Next(0, img.Height);
+                   img.Mutate(
+                               ctx => ctx
+                                   .DrawLine(_options.NoiseRateColor[random.Next(0, _options.NoiseRateColor.Length)],
+                                   Extensions.GenerateNextFloat(0.5, 1.5), new PointF[] { new Vector2(x0, y0), new Vector2(x0, y0) })
+                           );
+               });
+
+               img.Mutate(x =>
+               {
+                   x.Resize(_options.Width, _options.Height);
+               });
+
+
+
+
+               using (var ms = new MemoryStream())
+               {
+                   img.SaveAsPng(ms, encoder);
+                   img.Dispose();
+                   imgText.Dispose();
+                   font = null;
+
+                   byte[] bitmapBytes = ms.ToArray();
+
+                   string base64String = Convert.ToBase64String(bitmapBytes);
+                   bitmapBytes = null;
+                   ms.Dispose();
+                   return base64String;
+               }
+           }
+
+       }
+
+       private AffineTransformBuilder getRotation()
+       {
+           Random random = Random.Shared;
+           var builder = new AffineTransformBuilder();
+           var width = random.Next(10, _options.Width);
+           var height = random.Next(10, _options.Height);
+           var pointF = new PointF(width, height);
+           var rotationDegrees = random.Next(0, _options.MaxRotationDegrees);
+           var result = builder.PrependRotationDegrees(rotationDegrees, pointF);
+
+           return result;
+       }
+
+
+       void IDisposable.Dispose()
+       {
+           GC.SuppressFinalize(this);
+
+           GC.Collect();
+           GC.WaitForFullGCComplete();
+           GC.WaitForFullGCApproach();
+           GC.WaitForPendingFinalizers();
+       }
+   }
