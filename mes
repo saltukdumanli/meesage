@@ -1,4 +1,25 @@
-   public class CaptchaOptions
+
+
+		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.0" />
+
+
+using SixLabors.Fonts; 
+
+
+FontCollection collection = new();
+if(System.IO.Directory.Exists("FONTS")==true)
+{
+    Console.WriteLine("FONTS 1");
+}else
+    Console.WriteLine("FONTS 0");
+string[] files = System.IO.Directory.GetFiles("FONTS/", "*.ttf"); 
+foreach (var item in files)
+{
+    collection.Add(item);
+}
+
+
+public class CaptchaOptions
    {
        public static FontCollection FontCollection { get; set; } = null!;
        public string[] FontFamilies { get; set; } = FontCollection.Families.Select(t => t.Name).ToArray();
