@@ -19,6 +19,43 @@ foreach (var item in files)
 }
 
 
+CaptchaOptions.FontCollection = collection;
+
+
+public static class Extensions
+{
+
+
+    private static readonly char[] chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVXYZW23456789".ToCharArray();
+
+
+    public static string GenerateRandomText(this int length)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++)
+        {
+            // Rastgele bir karakter seç
+            char randomChar = chars[Random.Shared.Next(chars.Length)];
+            sb.Append(randomChar);
+        }
+
+        return sb.ToString();
+    }
+
+
+    public static float GenerateNextFloat(double min = -3.40282347E+38, double max = 3.40282347E+38)
+    {
+        Random random = Random.Shared;
+        double range = max - min;
+        double sample = random.NextDouble();
+        double scaled = (sample * range) + min;
+        float result = (float)scaled;
+        return result;
+    }
+}
+
+
+
 public class CaptchaOptions
    {
        public static FontCollection FontCollection { get; set; } = null!;
