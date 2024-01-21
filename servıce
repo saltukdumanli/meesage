@@ -1,0 +1,84 @@
+//Servisler saltuk
+[
+    //CreateCaptcha
+    //Request
+    {
+        "CaptchaProfileCode": "INTERNETSUBECODE",
+        "notCaptchaTryCount": 3
+    },
+    //Reponse
+    {
+        "captchaView": true,
+        "image?": "sadsd",
+        "captchaId": "acd036b-328d-411c-9332-a4fef42cfaf8",
+        "width": 250,
+        "height": 50
+    },
+    //GetCaptchaProfile
+    //Request
+    {
+        "CaptchaProfileCode": "INTERNETSUBECODE"
+        /*
+        KENDI KULLANGIN KANALDAKI PROFIL CODE 
+        */
+    },
+    //RESPONSE
+    {
+        "profileCode": "ABC123",
+        "profileName": "Example Profile",
+        "profileData": "Example Data",
+        "profileForm": {
+            "Width": 200,
+            "Height": 100
+        },
+        "status": true,
+        "notCaptchaTryCount": 3,
+        "channel": "Web"
+    },
+    //CheckCaptcha
+    //Reuqest
+    {
+        "captchaId": "acd036b-328d-411c-9332-a4fef42cfaf8",
+        "captchaText": "a4fef42cfaf8"
+    },
+    //Response
+    {
+        "isSuccess": false,
+        "ErrorCode":"FastInput",
+        "ErrorText":"Bot attack/bot detecth"
+    }
+]
+
+
+//Logın Servisinde
+//eger captcha goster false ise formId ve catpchaId ile sen sha3 ile hashle 
+
+/*
+    1. form acildiginda  {FormId:FormId,CaptchaId:CaptchaId,notCaptchaTryCount:notCaptchaTryCount,randomText:'sddsdsd',date:5dk gecerli olur} entitiy sifrele  form daki captcha singekle
+        1.a GetCaptchaProfile git eger sonuc aktif pasif gelirse ona gore captcha sureclerine dahil et dogrulamada da ayni sekilde bak
+    2. dogrulama servisi  CaptchaValue.captchaText doluysa saltukgun vergisi servise git ve kontrol et checkcaptcha
+    3. CaptchaValue.captchaText null ise kendi tarindaki catchaSign coz gelen data ile karsilastir cozulen alanlar ile eslesin ve date kontrol et 5 dk fazla ise (5 dk form buyuklugu ile orantilidir bir login form 3 dk iken baska form 20 dk olabilir) 
+        login olamazsan notCaptchaTryCount+1 ekleyerek CreateCaptcha cagir ve ekrani yeniden olustur
+
+    **. eger servisler 3sn uzerinde timmeout olursa captchasiz sekilde devam edilecek. hata almayacak akis devam edecek.
+    
+
+*/
+//request
+{
+    "FormId" : "FormId", /* her defasinda uniq olacak */
+    "Username":"X",
+    "Paswword":"X",
+    "CaptchaValue":{
+        "captchaId" :"GUID Servisden donen",
+        "catchaSign":"{sifreli bir sekilde {FormId:FormId,CaptchaId:CaptchaId,notCaptchaTryCount:notCaptchaTryCount,randomText:'sddsdsd',date:5dk gecerli olur}",
+        "captchaText?":"adamin girdigi",
+        "DeviceId":"XX"
+    }
+},
+//kanal reponse
+{
+    ""
+}
+
+
